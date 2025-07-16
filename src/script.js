@@ -1,10 +1,8 @@
 import "./styles.css";
+import bgImage from "./bg.jpg";
 
-console.log("Welcome!");
-
-async function getData() {
+async function getData(location) {
 	const apiKey = "YRD233UF5RTTR8VKALG4RJMYV";
-	const location = "Portland, Oregon";
 	const url = `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${location}?key=${apiKey}`;
 	try {
 		const response = await fetch(url);
@@ -19,6 +17,9 @@ async function getData() {
 }
 
 function processData(json) {
+	if (!json || !json.resolvedAddress) {
+		throw new Error("Invalid or incomplete API response");
+	}
 	const data = {
 		location: json.resolvedAddress.replace(", United States", ""),
 		condition: json.currentConditions.conditions,
@@ -47,7 +48,6 @@ function displayData(data) {
 	const mainContainer = document.createElement("div");
 	mainContainer.classList.add("main-container");
 	//
-
 	const leftContainer = document.createElement("div");
 	leftContainer.classList.add("left-container");
 
@@ -71,13 +71,12 @@ function displayData(data) {
 	leftContainer.appendChild(tempText);
 	leftContainer.appendChild(highLowContainer);
 	//
-
 	const rightContainer = document.createElement("div");
 	rightContainer.classList.add("right-container");
 
-	const todayText = document.createElement("h3");
-	const timeText = document.createElement("h3");
-	const conditionText = document.createElement("h3");
+	const todayText = document.createElement("h4");
+	const timeText = document.createElement("h4");
+	const conditionText = document.createElement("h4");
 
 	todayText.textContent = "Today";
 	timeText.textContent = data.time;
@@ -86,9 +85,7 @@ function displayData(data) {
 	rightContainer.appendChild(todayText);
 	rightContainer.appendChild(timeText);
 	rightContainer.appendChild(conditionText);
-
 	//
-
 	const bottomContainer = document.createElement("div");
 	bottomContainer.classList.add("bottom-container");
 
@@ -99,13 +96,13 @@ function displayData(data) {
 	windContainer.classList.add("bottom-element");
 	humidityContainer.classList.add("bottom-element");
 
-	const feelsLikeTop = document.createElement("h4");
-	const windTop = document.createElement("h4");
-	const humidityTop = document.createElement("h4");
+	const feelsLikeTop = document.createElement("h5");
+	const windTop = document.createElement("h5");
+	const humidityTop = document.createElement("h5");
 
-	const feelsLikeBottom = document.createElement("h5");
-	const windBottom = document.createElement("h5");
-	const humidityBottom = document.createElement("h5");
+	const feelsLikeBottom = document.createElement("h6");
+	const windBottom = document.createElement("h6");
+	const humidityBottom = document.createElement("h6");
 
 	feelsLikeTop.textContent = `${
 		units === "F" ? data.feelsLikeF : data.feelsLikeC
@@ -128,17 +125,78 @@ function displayData(data) {
 	bottomContainer.appendChild(windContainer);
 	bottomContainer.appendChild(humidityContainer);
 	//
-
 	mainContainer.appendChild(leftContainer);
 	mainContainer.appendChild(rightContainer);
 	mainContainer.appendChild(bottomContainer);
 	document.body.appendChild(mainContainer);
 }
 
-async function init() {
-	const json = await getData();
-	const data = processData(json);
-	displayData(data);
+function initOverlay() {
+	const overlay = document.createElement("div");
+	overlay.style.position = "fixed";
+	overlay.style.width = "100vw";
+	overlay.style.height = "100vh";
+	overlay.style.backgroundImage = `url(${bgImage})`;
+	overlay.style.backgroundSize = "cover";
+	overlay.style.backgroundPosition = "center";
+	overlay.style.opacity = "0.75";
+	overlay.style.zIndex = "-1";
+	document.body.appendChild(overlay);
 }
 
-document.addEventListener("DOMContentLoaded", init);
+function initSearch() {
+	const searchContainer = document.createElement("div");
+	searchContainer.classList.add("search-container");
+
+	const searchInput = document.createElement("input");
+	searchInput.type = "text";
+	searchInput.classList.add("search-input");
+	searchInput.placeholder = "Search location";
+
+	const searchButton = document.createElement("button");
+	searchButton.classList.add("search-button");
+	searchButton.textContent = "Search";
+
+	searchContainer.append(searchInput);
+	searchContainer.append(searchButton);
+	document.body.append(searchContainer);
+
+	const btn = document.querySelector(".search-button");
+	const queryElement = document.querySelector(".search-input");
+
+	btn.addEventListener("click", () => {
+		if (queryElement.value) {
+			init(queryElement.value);
+		}
+	});
+}
+
+function displayError() {
+	if (document.querySelector(".error-message")) return;
+
+	const errorElement = document.createElement("div");
+	errorElement.classList.add("error-message");
+	errorElement.textContent = "Location not found!";
+	document.body.appendChild(errorElement);
+}
+
+async function init(location = "Portland, Oregon") {
+	let json;
+	try {
+		json = await getData(location);
+		if (!json || !json.resolvedAddress) {
+			throw new Error("Invalid weather data");
+		}
+	} catch (error) {
+		displayError();
+		return;
+	}
+
+	document.body.innerHTML = "";
+	initOverlay();
+	const data = processData(json);
+	displayData(data);
+	initSearch();
+}
+
+document.addEventListener("DOMContentLoaded", () => init());
