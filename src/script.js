@@ -32,11 +32,10 @@ function processData(json) {
 		feelsLikeC: Math.round((json.currentConditions.feelslike - 32) * (5 / 9)),
 		windSpeed: json.currentConditions.windspeed,
 		humidity: Math.round(json.currentConditions.humidity),
-		time: new Date(
-			json.currentConditions.datetimeEpoch * 1000
-		).toLocaleTimeString("en-US", {
+		time: new Date().toLocaleTimeString("en-US", {
 			hour: "numeric",
 			minute: "2-digit",
+			timeZone: json.timezone,
 		}),
 	};
 	return data;
